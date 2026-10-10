@@ -63,15 +63,15 @@ Users supply their own API key for one or more providers:
 |---|---|---|---|
 | Anthropic Claude | `x-api-key` header | `claude-haiku-4-5` | `claude-opus-4-5` |
 | OpenAI | `Authorization: Bearer` | `gpt-4o-mini` | `gpt-4o` |
-| Google Gemini | `x-goog-api-key` header | `gemini-2.5-flash` | `gemini-2.5-pro` |
+| Google Gemini | `x-goog-api-key` header | `gemini-3.5-flash-lite` | `gemini-3.8-flash` |
 
 **Model-tier assignment (matches original PRD):**
-- Solvers (A, B, C): fast model.
-- Critic: fast model.
-- Judge: strong model.
-- Tutor (Phase 4): strong model.
+- Solvers (A, B, C): fast model (`gemini-3.5-flash-lite`).
+- Critic: fast model (`gemini-3.5-flash-lite`).
+- Judge: strong model (`gemini-3.8-flash`).
+- Tutor (Phase 4): strong model (`gemini-3.8-flash`).
 
-`gemini-1.5-flash` and `gemini-1.5-pro` were removed because Google shut down the Gemini 1.5 API in September 2025.
+Models reflect Google's current API documentation for new projects (`gemini-3.5-flash-lite` and `gemini-3.8-flash`), replacing deprecated 1.5/2.5 tier identifiers.
 
 **Key-handling behavior:**
 - Keys live in JavaScript `let` variables inside a closure — never in `localStorage`, `sessionStorage`, cookies, IndexedDB, or URLs.

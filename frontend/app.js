@@ -48,6 +48,7 @@
   const judgeRetryNote  = document.getElementById('judge-retry-note');
   const scoreGrid       = document.getElementById('score-grid');
   const winnerBox       = document.getElementById('winner-box');
+  const cardJudgeMsg    = document.getElementById('card-judge-msg');
 
   // ── Tutor DOM refs ──
   const tutorSection      = document.getElementById('tutor-section');
@@ -173,6 +174,19 @@
 
   /** Set body text safely — never innerHTML */
   function setCardBody(id, text, isPlaceholder = false) {
+    if (id === 'judge') {
+      const msgEl = cardJudgeMsg || document.getElementById('card-judge-msg');
+      if (msgEl) {
+        msgEl.textContent = text;
+        msgEl.hidden = !text;
+        if (isPlaceholder) {
+          msgEl.classList.add('placeholder');
+        } else {
+          msgEl.classList.remove('placeholder');
+        }
+      }
+      return;
+    }
     const body = document.getElementById(`card-${id}-body`);
     if (!body) return;
     if (isPlaceholder) {
@@ -212,7 +226,9 @@
     setCardProvider('judge', judgeProvider);
     setCardBody('judge', '', false);
     scoreGrid.hidden = true;
+    scoreGrid.textContent = '';
     winnerBox.hidden = true;
+    winnerBox.textContent = '';
     judgeActions.hidden = true;
   }
 
@@ -334,12 +350,27 @@
     };
 
     // Clear old arena state
-    allFailedBanner.hidden  = true;
-    judgeActions.hidden     = true;
-    reviewRow.hidden        = true;
-    tutorSection.hidden     = true;
-    arenaSection.hidden     = false;
-    resetBtn.hidden         = false;
+    allFailedBanner.hidden   = true;
+    allFailedMsg.textContent = '';
+    judgeActions.hidden      = true;
+    reviewRow.hidden         = true;
+    tutorSection.hidden      = true;
+    arenaSection.hidden      = false;
+    resetBtn.hidden          = false;
+
+    // Reset critic and judge cards so stale data from prior runs cannot persist
+    setCardState('critic', 'waiting', 'Waiting');
+    setCardBody('critic', '', true);
+    setCardState('judge', 'waiting', 'Waiting');
+    setCardBody('judge', '', true);
+    scoreGrid.hidden         = true;
+    scoreGrid.textContent    = '';
+    winnerBox.hidden         = true;
+    winnerBox.textContent    = '';
+    if (cardJudgeMsg) {
+      cardJudgeMsg.textContent = '';
+      cardJudgeMsg.hidden = true;
+    }
 
     const assignments = assignSolverProviders();
     if (!assignments) {
@@ -407,7 +438,12 @@
     if (successfulDrafts.length === 0) {
       arenaStatus.textContent = 'All solvers failed.';
       allFailedBanner.hidden = false;
-      allFailedMsg.textContent = 'Check that at least one provider key is valid and the provider is reachable.';
+      reviewRow.hidden = true;
+      judgeActions.hidden = true;
+      const firstError = solverResults.find(r => r.status === 'fulfilled' && r.value && r.value.error)?.value?.error;
+      allFailedMsg.textContent = firstError
+        ? `All solvers failed: ${firstError}`
+        : 'Check that at least one provider key is valid and the provider is reachable.';
       cleanup();
       appState = 'idle';
       updateStartButton();
@@ -487,14 +523,19 @@
         if (mySessionId !== sessionId) return;
 
         if (ok && data && data.ok && data.winner && data.scores) {
+          setCardBody('judge', '', false);
           renderScoreGrid(data.scores);
           renderWinnerBox(data.winner, data.winnerText, criticDegraded || data.degraded);
           setCardState('judge', 'done', 'Completed');
           judgeActions.hidden = true;
           arenaStatus.textContent = `Solver ${data.winner} selected. Starting tutor…`;
           // Hand off to tutor — pass judgeProvider as tutor provider (same preference)
-          runTutor(question, data.winnerText, judgeProvider, mySessionId, ac);
+          runTutor(question, data.winnerText, judgeProvider, mySessionId, ac, cleanup);
         } else {
+          scoreGrid.hidden = true;
+          scoreGrid.textContent = '';
+          winnerBox.hidden = true;
+          winnerBox.textContent = '';
           const msg = data && data.error && data.error.message
             ? data.error.message
             : 'The judge failed to return valid scores.';
@@ -508,7 +549,11 @@
         }
       } catch (err) {
         if (mySessionId !== sessionId) return;
-        if (err && err.name === 'AbortError') { appState = 'idle'; updateStartButton(); return; }
+        if (err && err.name === 'AbortError') { cleanup(); appState = 'idle'; updateStartButton(); return; }
+        scoreGrid.hidden = true;
+        scoreGrid.textContent = '';
+        winnerBox.hidden = true;
+        winnerBox.textContent = '';
         setCardState('judge', 'failed', 'Failed');
         setCardBody('judge', 'Judge failed (network error).', true);
         judgeActions.hidden = false;
@@ -519,17 +564,21 @@
       }
     }
 
-    retryJudgeBtn.onclick = () => runJudge(true);
+    retryJudgeBtn.onclick = () => {
+      if (mySessionId !== sessionId) return;
+      if (appState !== 'reviewing') return;
+      runJudge(true);
+    };
     await runJudge(false);
-    // Note: cleanup() is called inside runTutor when it completes or fails.
-    // If judge itself fails (not tutor), we do NOT call cleanup so the abort
-    // controller stays active for the retry path.
+    // cleanup() is called by runTutor on completion or hard error.
+    // If only the judge failed (no tutor started), we leave ac in
+    // activeAbortControllers so resetArena can abort it on reset.
   }
 
   // ═══ Tutor pipeline ════════════════════════════════════════════════════════════
 
-  async function runTutor(question, winnerText, provider, mySessionId, ac) {
-    if (mySessionId !== sessionId) { ac.abort(); return; }
+  async function runTutor(question, winnerText, provider, mySessionId, ac, cleanup) {
+    if (mySessionId !== sessionId) { ac.abort(); cleanup(); return; }
 
     appState = 'tutoring';
     updateStartButton();
@@ -553,7 +602,7 @@
         winnerText
       }, ac);
 
-      if (mySessionId !== sessionId) { return; }
+      if (mySessionId !== sessionId) { cleanup(); return; }
 
       if (ok && data && data.ok && Array.isArray(data.steps)) {
         tutorData = data;
@@ -561,13 +610,13 @@
         const msg = data && data.error && data.error.message
           ? data.error.message
           : 'The tutor failed to prepare your lesson.';
-        showTutorError(msg, question, winnerText, provider, mySessionId, ac);
+        showTutorError(msg, question, winnerText, provider, mySessionId, ac, cleanup);
         return;
       }
     } catch (err) {
-      if (mySessionId !== sessionId) return;
-      if (err && err.name === 'AbortError') { appState = 'idle'; updateStartButton(); return; }
-      showTutorError('Network error reaching the tutor. Check your connection.', question, winnerText, provider, mySessionId, ac);
+      if (mySessionId !== sessionId) { cleanup(); return; }
+      if (err && err.name === 'AbortError') { cleanup(); appState = 'idle'; updateStartButton(); return; }
+      showTutorError('Network error reaching the tutor. Check your connection.', question, winnerText, provider, mySessionId, ac, cleanup);
       return;
     }
 
@@ -579,6 +628,7 @@
     let notClearCount = 0;
 
     function renderStep(index) {
+      if (mySessionId !== sessionId) return;
       currentStep   = index;
       notClearCount = 0;
 
@@ -600,6 +650,7 @@
     }
 
     function advanceStep() {
+      if (mySessionId !== sessionId) return;
       if (currentStep + 1 < tutorData.steps.length) {
         renderStep(currentStep + 1);
       } else {
@@ -608,26 +659,37 @@
     }
 
     function showRecap() {
+      if (mySessionId !== sessionId) return;
       stepCard.hidden   = true;
       recapSection.hidden = false;
       tutorStatus.textContent = 'Lesson complete.';
       appState = 'done';
       updateStartButton();
+      cleanup();
 
       recapText.textContent       = tutorData.recap;
       finalCheckText.textContent  = tutorData.final_check_question;
 
       copyRecapBtn.onclick = async () => {
+        if (mySessionId !== sessionId) return;
         try {
           await navigator.clipboard.writeText(tutorData.recap);
+          if (mySessionId !== sessionId) return;
           copyConfirm.hidden = false;
-          setTimeout(() => { copyConfirm.hidden = true; }, 1500);
+          setTimeout(() => {
+            if (mySessionId === sessionId) {
+              copyConfirm.hidden = true;
+            }
+          }, 1500);
         } catch {
+          if (mySessionId !== sessionId) return;
           copyConfirm.hidden = false;
           copyConfirm.textContent = 'Copy failed — select and copy manually.';
           setTimeout(() => {
-            copyConfirm.hidden = true;
-            copyConfirm.textContent = 'Copied!';
+            if (mySessionId === sessionId) {
+              copyConfirm.hidden = true;
+              copyConfirm.textContent = 'Copied!';
+            }
           }, 2500);
         }
       };
@@ -635,12 +697,14 @@
 
     // ── Got it ──
     gotItBtn.onclick = () => {
+      if (mySessionId !== sessionId) return;
       if (appState !== 'tutoring') return;
       advanceStep();
     };
 
     // ── Not clear ──
     notClearBtn.onclick = async () => {
+      if (mySessionId !== sessionId) return;
       if (appState !== 'tutoring') return;
 
       notClearCount += 1;
@@ -695,13 +759,17 @@
         reexplainError.textContent = 'Network error. Try again.';
         reexplainError.hidden = false;
       } finally {
-        gotItBtn.disabled    = false;
-        notClearBtn.disabled = false;
+        if (mySessionId === sessionId) {
+          gotItBtn.disabled    = false;
+          notClearBtn.disabled = false;
+        }
       }
     };
 
     // ── Continue button (after worked example) ──
     continueBtn.onclick = () => {
+      if (mySessionId !== sessionId) return;
+      if (appState !== 'tutoring') return;
       workedExampleBox.hidden = true;
       stepActions.hidden      = false;
       advanceStep();
@@ -711,7 +779,8 @@
     renderStep(0);
   }
 
-  function showTutorError(message, question, winnerText, provider, mySessionId, ac) {
+  function showTutorError(message, question, winnerText, provider, mySessionId, ac, cleanup) {
+    if (mySessionId !== sessionId) return;
     tutorLoading.hidden      = true;
     tutorErrorBanner.hidden  = false;
     tutorErrorMsg.textContent = message;
@@ -720,8 +789,9 @@
     updateStartButton();
 
     retryTutorBtn.onclick = () => {
+      if (mySessionId !== sessionId) return;
       tutorErrorBanner.hidden = true;
-      runTutor(question, winnerText, provider, mySessionId, ac);
+      runTutor(question, winnerText, provider, mySessionId, ac, cleanup);
     };
   }
 
@@ -771,10 +841,17 @@
     arenaSection.hidden      = true;
     reviewRow.hidden         = true;
     allFailedBanner.hidden   = true;
+    allFailedMsg.textContent = '';
     resetBtn.hidden          = true;
     judgeActions.hidden      = true;
     scoreGrid.hidden         = true;
+    scoreGrid.textContent    = '';
     winnerBox.hidden         = true;
+    winnerBox.textContent    = '';
+    if (cardJudgeMsg) {
+      cardJudgeMsg.textContent = '';
+      cardJudgeMsg.hidden = true;
+    }
     questionError.textContent = '';
 
     // Reset tutor section

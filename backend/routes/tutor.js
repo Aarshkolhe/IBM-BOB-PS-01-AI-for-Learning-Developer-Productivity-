@@ -209,12 +209,12 @@ tutorRouter.post(
     } catch (error) {
       const code = error.code || 'TUTOR_FAILED';
       const providerStatus = error.providerStatus;
-      console.warn(`[tutor] provider=${provider} code=${code}`);
+      console.warn(`[tutor] provider=${provider} status=${providerStatus} code=${code}`);
 
-      const httpStatus = providerStatus === 401 || providerStatus === 403 ? 422
-        : providerStatus === 429 ? 429
-        : providerStatus >= 500 ? 502
-        : code === 'PROVIDER_TIMEOUT' ? 504
+      const httpStatus = providerStatus === 401 || providerStatus === 403 || code === 'PROVIDER_AUTH_FAILED' || code === 'PROVIDER_ACCESS_DENIED' ? 422
+        : providerStatus === 429 || code === 'PROVIDER_LIMIT_REACHED' ? 429
+        : providerStatus === 503 || code === 'PROVIDER_UNAVAILABLE' ? 503
+        : code === 'PROVIDER_TIMEOUT' || providerStatus === 504 ? 504
         : 502;
 
       return res.status(httpStatus).json({
@@ -280,12 +280,12 @@ tutorRouter.post(
     } catch (error) {
       const code = error.code || 'REEXPLAIN_FAILED';
       const providerStatus = error.providerStatus;
-      console.warn(`[reexplain] provider=${provider} code=${code}`);
+      console.warn(`[reexplain] provider=${provider} status=${providerStatus} code=${code}`);
 
-      const httpStatus = providerStatus === 401 || providerStatus === 403 ? 422
-        : providerStatus === 429 ? 429
-        : providerStatus >= 500 ? 502
-        : code === 'PROVIDER_TIMEOUT' ? 504
+      const httpStatus = providerStatus === 401 || providerStatus === 403 || code === 'PROVIDER_AUTH_FAILED' || code === 'PROVIDER_ACCESS_DENIED' ? 422
+        : providerStatus === 429 || code === 'PROVIDER_LIMIT_REACHED' ? 429
+        : providerStatus === 503 || code === 'PROVIDER_UNAVAILABLE' ? 503
+        : code === 'PROVIDER_TIMEOUT' || providerStatus === 504 ? 504
         : 502;
 
       return res.status(httpStatus).json({

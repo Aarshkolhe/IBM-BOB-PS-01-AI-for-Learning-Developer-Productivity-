@@ -396,3 +396,218 @@ test('review/critic: gemini response body never contains the submitted api key',
     'API key must not appear in the critic response');
   global.fetch = originalFetch;
 });
+
+// ── 16. Judge: Gemini 400 with API_KEY_INVALID maps to 422 PROVIDER_AUTH_FAILED ─
+
+test('review/judge: gemini 400 with API_KEY_INVALID maps to 422 PROVIDER_AUTH_FAILED', async () => {
+  const secretKey = 'gemini-bad-judge-key-999';
+  global.fetch = async () => ({
+    ok: false,
+    status: 400,
+    text: async () => JSON.stringify({
+      error: {
+        code: 400,
+        message: 'API key not valid.',
+        details: [{ reason: 'API_KEY_INVALID' }]
+      }
+    }),
+    body: { cancel: async () => {} }
+  });
+
+  const app = require('../server');
+  const { status, body } = await postReview(app, {
+    provider: 'gemini',
+    apiKey: secretKey,
+    stage: 'judge',
+    question: SAMPLE_QUESTION,
+    drafts: SAMPLE_DRAFTS
+  });
+  assert.equal(status, 422);
+  assert.equal(body.error.code, 'PROVIDER_AUTH_FAILED');
+  assert.equal(JSON.stringify(body).includes(secretKey), false, 'API key must not leak');
+  global.fetch = originalFetch;
+});
+
+// ── 17. Judge: model unavailable (404) maps to 502 MODEL_UNAVAILABLE ──────────
+
+test('review/judge: model unavailable (404) maps to 502 MODEL_UNAVAILABLE safely', async () => {
+  const secretKey = 'gemini-key-model-missing-123';
+  global.fetch = async () => ({
+    ok: false,
+    status: 404,
+    text: async () => JSON.stringify({ error: { message: 'models/gemini-3.8-flash not found' } }),
+    body: { cancel: async () => {} }
+  });
+
+  const app = require('../server');
+  const { status, body } = await postReview(app, {
+    provider: 'gemini',
+    apiKey: secretKey,
+    stage: 'judge',
+    question: SAMPLE_QUESTION,
+    drafts: SAMPLE_DRAFTS
+  });
+  assert.equal(status, 502);
+  assert.equal(body.error.code, 'MODEL_UNAVAILABLE');
+  assert.equal(JSON.stringify(body).includes(secretKey), false, 'API key must not leak');
+  global.fetch = originalFetch;
+});
+
+// ── 18. Judge: 503 provider unavailable maps to 503 safely ───────────────────
+
+test('review/judge: provider 503 maps to 503 PROVIDER_UNAVAILABLE safely', async () => {
+  const secretKey = 'gemini-judge-key-503-test';
+  global.fetch = async () => ({
+    ok: false,
+    status: 503,
+    text: async () => JSON.stringify({ error: { message: 'The model is overloaded.' } }),
+    body: { cancel: async () => {} }
+  });
+
+  const app = require('../server');
+  const { status, body } = await postReview(app, {
+    provider: 'gemini',
+    apiKey: secretKey,
+    stage: 'judge',
+    question: SAMPLE_QUESTION,
+    drafts: SAMPLE_DRAFTS,
+    critique: 'Critique here.'
+  });
+  assert.equal(status, 503);
+  assert.equal(body.error.code, 'PROVIDER_UNAVAILABLE');
+  assert.ok(body.error.message.includes('unavailable') || body.error.message.includes('overloaded'));
+  assert.equal(JSON.stringify(body).includes(secretKey), false, 'API key must not leak');
+  global.fetch = originalFetch;
+});
+
+// ── 19. Judge: transient 503 recovers on automatic second attempt ─────────────
+
+test('review/judge: transient 503 recovers on automatic second attempt', async () => {
+  let attempt = 0;
+  global.fetch = async () => {
+    attempt++;
+    if (attempt === 1) {
+      return {
+        ok: false,
+        status: 503,
+        text: async () => JSON.stringify({ error: { message: 'The model is overloaded.' } }),
+        body: { cancel: async () => {} }
+      };
+    }
+    return {
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => ({
+        candidates: [{ content: { parts: [{ text: JSON.stringify(VALID_JUDGE_RESPONSE) }] } }]
+      }),
+      body: { cancel: async () => {} }
+    };
+  };
+
+  const app = require('../server');
+  const { status, body } = await postReview(app, {
+    provider: 'gemini',
+    apiKey: 'gemini-key-12345678',
+    stage: 'judge',
+    question: SAMPLE_QUESTION,
+    drafts: SAMPLE_DRAFTS,
+    critique: 'Draft B is best.'
+  });
+  assert.equal(status, 200);
+  assert.equal(body.winner, 'B');
+  assert.equal(attempt, 2);
+  global.fetch = originalFetch;
+});
+
+// ── 20. Judge: provider 500 maps to 502 PROVIDER_INTERNAL_ERROR ───────────────
+
+test('review/judge: provider 500 maps to 502 PROVIDER_INTERNAL_ERROR safely', async () => {
+  const secretKey = 'gemini-judge-500-key-xyz';
+  global.fetch = async () => ({
+    ok: false,
+    status: 500,
+    text: async () => JSON.stringify({ error: { message: 'Internal error encountered.' } }),
+    body: { cancel: async () => {} }
+  });
+
+  const app = require('../server');
+  const { status, body } = await postReview(app, {
+    provider: 'gemini',
+    apiKey: secretKey,
+    stage: 'judge',
+    question: SAMPLE_QUESTION,
+    drafts: SAMPLE_DRAFTS
+  });
+  assert.equal(status, 502);
+  assert.equal(body.error.code, 'PROVIDER_INTERNAL_ERROR');
+  assert.equal(JSON.stringify(body).includes(secretKey), false, 'API key must not leak');
+  global.fetch = originalFetch;
+});
+
+// ── 21. Judge: provider 429 maps to 429 PROVIDER_LIMIT_REACHED ───────────────
+
+test('review/judge: provider 429 maps to 429 PROVIDER_LIMIT_REACHED safely', async () => {
+  const secretKey = 'gemini-judge-429-key-xyz';
+  global.fetch = async () => ({
+    ok: false,
+    status: 429,
+    text: async () => JSON.stringify({ error: { message: 'Resource exhausted.' } }),
+    body: { cancel: async () => {} }
+  });
+
+  const app = require('../server');
+  const { status, body } = await postReview(app, {
+    provider: 'gemini',
+    apiKey: secretKey,
+    stage: 'judge',
+    question: SAMPLE_QUESTION,
+    drafts: SAMPLE_DRAFTS
+  });
+  assert.equal(status, 429);
+  assert.equal(body.error.code, 'PROVIDER_LIMIT_REACHED');
+  assert.equal(JSON.stringify(body).includes(secretKey), false, 'API key must not leak');
+  global.fetch = originalFetch;
+});
+
+// ── 22. Judge: oversized drafts and critique are safely bounded ───────────────
+
+test('review/judge: oversized drafts and critique are bounded without error', async () => {
+  let capturedBody = null;
+  global.fetch = async (_url, options) => {
+    capturedBody = JSON.parse(options.body);
+    return {
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => ({
+        candidates: [{ content: { parts: [{ text: JSON.stringify(VALID_JUDGE_RESPONSE) }] } }]
+      }),
+      body: { cancel: async () => {} }
+    };
+  };
+
+  const hugeDraft = 'x'.repeat(5500);
+  const hugeCritique = 'c'.repeat(8000);
+  const app = require('../server');
+  const { status, body } = await postReview(app, {
+    provider: 'gemini',
+    apiKey: 'gemini-key-test-bounded',
+    stage: 'judge',
+    question: 'How to sort an array?',
+    drafts: [
+      { label: 'A', text: hugeDraft },
+      { label: 'B', text: 'Short draft B.' }
+    ],
+    critique: hugeCritique
+  });
+
+  assert.equal(status, 200);
+  assert.ok(capturedBody);
+  const userText = capturedBody.contents[0].parts[0].text;
+  assert.ok(userText.includes('[Truncated for length]'));
+  assert.ok(capturedBody.generationConfig.maxOutputTokens >= 3000);
+  global.fetch = originalFetch;
+});
+
+

@@ -24,6 +24,7 @@
 
 /* ─── Reset ──────────────────────────────────────────────────────────────────── */
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { min-width: 320px; background: var(--paper); }
 body {
   margin: 0;
@@ -357,7 +358,17 @@ h1 { margin: 0; letter-spacing: -.055em; font-size: clamp(32px, 4vw, 46px); line
 }
 .review-card {}
 
-/* ─── Score grid inside judge card ──────────────────────────────────────────── */
+/* ─── Judge message & score grid inside judge card ─────────────────────────── */
+.judge-msg {
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.judge-msg.placeholder {
+  color: var(--muted);
+  font-style: italic;
+}
+
 .score-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));

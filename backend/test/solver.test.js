@@ -393,3 +393,60 @@ test('solver: gemini response body never contains the submitted api key', async 
     'API key must not appear in the success response');
   global.fetch = originalFetch;
 });
+
+// ── 19. Gemini multi-part candidate joins parts cleanly ───────────────────────
+
+test('solver: gemini multi-part candidate joins parts cleanly', async () => {
+  global.fetch = makeFetchStub(200, {
+    candidates: [{
+      content: {
+        parts: [
+          { text: 'First part of answer. ' },
+          { text: 'Second part with details.' }
+        ]
+      }
+    }]
+  });
+  const app = require('../server');
+  const { status, body } = await postSolver(app, {
+    provider: 'gemini',
+    apiKey: 'gemini-key-12345678',
+    question: 'How do hash tables work?',
+    style: 'concise'
+  });
+  assert.equal(status, 200);
+  assert.equal(body.draft, 'First part of answer. Second part with details.');
+  global.fetch = originalFetch;
+});
+
+// ── 20. Gemini 400 with API_KEY_INVALID maps to 422 PROVIDER_AUTH_FAILED ─────
+
+test('solver: gemini 400 with API_KEY_INVALID maps to 422 PROVIDER_AUTH_FAILED', async () => {
+  const secretKey = 'gemini-invalid-secret-key-999';
+  global.fetch = async () => ({
+    ok: false,
+    status: 400,
+    text: async () => JSON.stringify({
+      error: {
+        code: 400,
+        message: 'API key not valid. Please pass a valid API key.',
+        status: 'INVALID_ARGUMENT',
+        details: [{ reason: 'API_KEY_INVALID' }]
+      }
+    }),
+    body: { cancel: async () => {} }
+  });
+
+  const app = require('../server');
+  const { status, body } = await postSolver(app, {
+    provider: 'gemini',
+    apiKey: secretKey,
+    question: 'Explain recursion.',
+    style: 'first_principles'
+  });
+  assert.equal(status, 422);
+  assert.equal(body.error.code, 'PROVIDER_AUTH_FAILED');
+  assert.equal(JSON.stringify(body).includes(secretKey), false, 'API key must not leak');
+  global.fetch = originalFetch;
+});
+
