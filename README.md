@@ -315,21 +315,21 @@ Common codes: `INVALID_REQUEST`, `PROVIDER_AUTH_FAILED`, `PROVIDER_LIMIT_REACHED
 
 ## Vercel deployment
 
-TutorArena is fully configured for deployment on Vercel as a hybrid application:
-- **Frontend**: Static files in `/frontend` are served directly by Vercel's global CDN.
-- **Backend API**: The Express app in `/backend` runs as a Vercel Serverless Function via `/api/index.js` (with `maxDuration: 60s` for LLM multi-agent pipelines).
+TutorArena is fully configured for deployment on Vercel using the native zero-configuration Express backend framework:
+- **Static Assets**: Files in `/public` (`index.html`, `style.css`, `app.js`) are served directly via Vercel's global CDN at the root path (`/`).
+- **Backend API**: The Express application runs via root `index.js` (aliased by `server.js`) on Vercel Functions with `maxDuration: 60s` configured in `vercel.json` to comfortably support multi-agent LLM debates and tutor generation.
+- **Node Runtime**: Configured for `node: 20.x` LTS in `package.json`.
 
 ### Option 1 — Git Integration (Recommended)
-1. Push this repository to GitHub:
+1. Push your changes to GitHub:
    ```bash
    git add .
-   git commit -m "Configure Vercel deployment"
+   git commit -m "Configure Vercel zero-config Express deployment"
    git push origin main
    ```
-2. Open [Vercel Dashboard](https://vercel.com/new) and click **Import Project**.
-3. Select your GitHub repository (`IBM-BOB-PS-01-AI-for-Learning-Developer-Productivity-`).
-4. Keep the root directory as `./` (default) and framework as **Other**.
-5. Click **Deploy**. Vercel will automatically read `vercel.json` and deploy both the frontend and API.
+2. In the [Vercel Dashboard](https://vercel.com/new), import your GitHub repository.
+3. Vercel automatically detects the Express framework and root entrypoint (`index.js`).
+4. Click **Deploy**. Vercel will run the build script to sync static assets and deploy the application.
 
 ### Option 2 — Vercel CLI
 ```bash

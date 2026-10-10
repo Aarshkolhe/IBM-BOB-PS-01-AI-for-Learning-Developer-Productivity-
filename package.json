@@ -3,12 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "description": "TutorArena — Multi-agent LLM debate arena and Socratic tutor",
-  "main": "api/index.js",
+  "main": "index.js",
   "engines": {
-    "node": ">=20.0.0"
+    "node": "20.x"
   },
   "scripts": {
-    "start": "node backend/server.js",
+    "build": "node -e \"const fs=require('fs'); if (fs.existsSync('frontend')) fs.cpSync('frontend', 'public', {recursive: true});\"",
+    "start": "node index.js",
     "test": "node --test backend/test/*.test.js"
   },
   "dependencies": {

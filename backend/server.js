@@ -13,7 +13,19 @@ const tutorRouter = require('./routes/tutor');
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
 const NODE_ENV = process.env.NODE_ENV || 'development';
-const frontendDir = path.join(__dirname, '..', 'frontend');
+const staticDir = [
+  path.join(process.cwd(), 'public'),
+  path.join(process.cwd(), 'frontend'),
+  path.join(__dirname, '..', 'public'),
+  path.join(__dirname, '..', 'frontend'),
+  path.join(__dirname, 'frontend')
+].find(dir => {
+  try {
+    return require('node:fs').existsSync(dir);
+  } catch {
+    return false;
+  }
+}) || path.join(__dirname, '..', 'frontend');
 
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
@@ -60,7 +72,7 @@ app.use('/api/solver', solverRouter);
 app.use('/api/review', reviewRouter);
 app.use('/api', tutorRouter);
 
-app.use(express.static(frontendDir, {
+app.use(express.static(staticDir, {
   index: 'index.html',
   etag: true,
   maxAge: 0,
