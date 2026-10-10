@@ -267,17 +267,19 @@ Common codes: `INVALID_REQUEST`, `PROVIDER_AUTH_FAILED`, `PROVIDER_LIMIT_REACHED
 │   ├── routes/
 │   │   ├── keys.js        # POST /api/keys/test
 │   │   ├── solver.js      # POST /api/solver
-│   │   └── review.js      # POST /api/review (critic + judge)
+│   │   ├── review.js      # POST /api/review (critic + judge)
+│   │   └── tutor.js       # POST /api/tutor + POST /api/reexplain
 │   ├── test/
 │   │   ├── providers.test.js
 │   │   ├── solver.test.js
-│   │   └── review.test.js
+│   │   ├── review.test.js
+│   │   └── tutor.test.js
 │   ├── package.json
 │   └── .env.example
 └── frontend/
-    ├── index.html         # All sections: key setup + question input + debate panel
-    ├── style.css          # Design tokens, provider cards, agent cards, score grid
-    └── app.js             # State machine, parallel solver orchestration, UI logic
+    ├── index.html         # Key setup + question + debate panel + tutor section
+    ├── style.css          # Design tokens, all component styles including tutor
+    └── app.js             # State machine, pipeline, tutor flow, reexplain loop
 ```
 
 ## Known limitations
@@ -286,16 +288,19 @@ Common codes: `INVALID_REQUEST`, `PROVIDER_AUTH_FAILED`, `PROVIDER_LIMIT_REACHED
 - All provider model IDs are configured server-side; updating them requires a server restart.
 - Provider rate limits, availability, model access, and pricing are controlled by each provider.
 - Agent review reduces some errors but cannot guarantee correctness.
-- Phase 4 (tutor, comprehension checks, recap) is not yet implemented.
+- Live Gemini API integration has not been smoke-tested with a real key (mocked tests only).
 
-## Demo flow (Phase 3)
+## Demo flow (Phase 4)
 
-1. Enter API keys for one or more providers and click **Test & keep in memory**.
-2. Type a buggy Python snippet in the question box and click **Start Learning**.
+1. Enter at least one API key and click **Test & keep in memory**.
+2. Type a buggy Python snippet and click **Start Learning**.
 3. Watch the three solver cards complete independently with their provider labels.
 4. Observe the critic's findings and the judge's score bars and selected answer.
-5. Click **New question** to reset and try a CS-concept question.
-6. Test a failed provider by clearing a key and rerunning — the remaining solvers continue.
+5. The tutor section opens automatically. Read Step 1.
+6. Click **Not clear** once to see a simpler re-explanation.
+7. Click **Got it** to advance through remaining steps.
+8. After the last step, read the recap and final check question; use the Copy button.
+9. Click **New question** to reset and try a CS-concept question.
 
 ## Deployment checklist
 
