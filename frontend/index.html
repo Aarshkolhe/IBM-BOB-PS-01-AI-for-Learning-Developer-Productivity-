@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="TutorArena — multi-agent AI learning with your own API keys.">
+  <title>TutorArena</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <main class="page-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="TutorArena home">
+        <span class="brand-mark" aria-hidden="true">TA</span>
+        <span>TutorArena</span>
+      </a>
+      <div class="topbar-right">
+        <span class="phase-label" id="phase-label">Phase 3 · Debate panel</span>
+        <button id="reset-btn" class="button button-quiet button-sm" type="button" hidden>New question</button>
+      </div>
+    </header>
+
+    <!-- ═══ STEP 1: Provider setup ═══════════════════════════════════════════ -->
+    <section id="setup-section" aria-label="Provider setup">
+      <div class="intro" aria-labelledby="page-title">
+        <p class="eyebrow">BRING YOUR OWN API KEY</p>
+        <h1 id="page-title">Connect your AI providers.</h1>
+        <p class="intro-copy">Add at least one provider key. Keys stay in this page's memory and are cleared when you refresh or leave.</p>
+      </div>
+
+      <div class="privacy-notice" role="note">
+        <span class="notice-icon" aria-hidden="true">i</span>
+        <p><strong>Privacy note</strong> — Keys are sent through this app's backend to make AI requests. They are not saved by TutorArena. Use HTTPS when deploying; this local page uses localhost. Do not enter keys on a shared or untrusted device.</p>
+      </div>
+
+      <div class="provider-grid" aria-label="AI provider API keys">
+        <article class="provider-card" data-provider-card="anthropic">
+          <div class="provider-heading">
+            <span class="provider-icon claude-icon" aria-hidden="true">✳</span>
+            <div><h2>Claude</h2><p>Anthropic API</p></div>
+            <span class="status-pill status-empty" data-status="anthropic">Not connected</span>
+          </div>
+          <form class="provider-form" data-provider="anthropic" novalidate>
+            <label for="key-anthropic">API key</label>
+            <div class="key-input-wrap">
+              <input id="key-anthropic" name="apiKey" type="password" placeholder="Paste your Anthropic API key" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="help-anthropic">
+              <button class="visibility-button" type="button" data-toggle-visibility="key-anthropic" aria-label="Show Claude API key">Show</button>
+            </div>
+            <p class="field-help" id="help-anthropic">Get an API key from the Anthropic Console. API billing is separate from the Claude chat subscription.</p>
+            <div class="card-actions">
+              <button class="button button-primary" type="submit">Test &amp; keep in memory</button>
+              <button class="button button-quiet" type="button" data-clear-provider="anthropic">Clear</button>
+            </div>
+            <p class="provider-feedback" data-feedback="anthropic" role="status" aria-live="polite"></p>
+          </form>
+        </article>
+
+        <article class="provider-card" data-provider-card="openai">
+          <div class="provider-heading">
+            <span class="provider-icon openai-icon" aria-hidden="true">◎</span>
+            <div><h2>OpenAI</h2><p>OpenAI API</p></div>
+            <span class="status-pill status-empty" data-status="openai">Not connected</span>
+          </div>
+          <form class="provider-form" data-provider="openai" novalidate>
+            <label for="key-openai">API key</label>
+            <div class="key-input-wrap">
+              <input id="key-openai" name="apiKey" type="password" placeholder="Paste your OpenAI API key" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="help-openai">
+              <button class="visibility-button" type="button" data-toggle-visibility="key-openai" aria-label="Show OpenAI API key">Show</button>
+            </div>
+            <p class="field-help" id="help-openai">Get a key from the OpenAI API platform. ChatGPT Plus does not automatically include API credits.</p>
+            <div class="card-actions">
+              <button class="button button-primary" type="submit">Test &amp; keep in memory</button>
+              <button class="button button-quiet" type="button" data-clear-provider="openai">Clear</button>
+            </div>
+            <p class="provider-feedback" data-feedback="openai" role="status" aria-live="polite"></p>
+          </form>
+        </article>
+
+        <article class="provider-card" data-provider-card="gemini">
+          <div class="provider-heading">
+            <span class="provider-icon gemini-icon" aria-hidden="true">✦</span>
+            <div><h2>Gemini</h2><p>Google AI API</p></div>
+            <span class="status-pill status-empty" data-status="gemini">Not connected</span>
+          </div>
+          <form class="provider-form" data-provider="gemini" novalidate>
+            <label for="key-gemini">API key</label>
+            <div class="key-input-wrap">
+              <input id="key-gemini" name="apiKey" type="password" placeholder="Paste your Gemini API key" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="help-gemini">
+              <button class="visibility-button" type="button" data-toggle-visibility="key-gemini" aria-label="Show Gemini API key">Show</button>
+            </div>
+            <p class="field-help" id="help-gemini">Create a Gemini API key in Google AI Studio with Gemini API access enabled.</p>
+            <div class="card-actions">
+              <button class="button button-primary" type="submit">Test &amp; keep in memory</button>
+              <button class="button button-quiet" type="button" data-clear-provider="gemini">Clear</button>
+            </div>
+            <p class="provider-feedback" data-feedback="gemini" role="status" aria-live="polite"></p>
+          </form>
+        </article>
+      </div>
+
+      <div class="session-bar" aria-label="Session key status">
+        <div>
+          <strong id="session-summary">No providers connected</strong>
+          <p id="session-detail">Connect at least one provider. Full cross-provider competition works best with all three.</p>
+        </div>
+        <button id="clear-all" class="button button-danger" type="button">Clear all keys</button>
+      </div>
+    </section>
+
+    <!-- ═══ STEP 2: Question input ════════════════════════════════════════════ -->
+    <section id="question-section" class="question-section" aria-label="Ask a question">
+      <div class="question-header">
+        <div class="step-mark" aria-hidden="true">02</div>
+        <div>
+          <h2>Ask a question</h2>
+          <p id="question-provider-note">Connect at least one provider above to start.</p>
+        </div>
+      </div>
+      <form id="question-form" novalidate>
+        <label for="question-input" class="question-label">Question, code snippet, or error message</label>
+        <textarea
+          id="question-input"
+          name="question"
+          rows="6"
+          placeholder="e.g. Why does this Python loop print the wrong result?&#10;&#10;for i in range(5):&#10;    print(i)"
+          aria-describedby="question-hint"
+          maxlength="12000"
+        ></textarea>
+        <div class="question-meta">
+          <p class="field-help" id="question-hint">Your question and any code will be sent to the selected AI providers via this app's backend.</p>
+          <span id="char-count" aria-live="polite">0 / 12,000</span>
+        </div>
+        <div class="question-actions">
+          <button id="start-btn" class="button button-primary button-lg" type="submit" disabled>Start Learning</button>
+        </div>
+        <p id="question-error" class="question-error" role="alert" aria-live="assertive"></p>
+      </form>
+    </section>
+
+    <!-- ═══ STEP 3: Debate panel ═════════════════════════════════════════════ -->
+    <section id="arena-section" aria-label="Agent debate panel" hidden>
+      <div class="arena-header">
+        <div class="step-mark" aria-hidden="true">03</div>
+        <div>
+          <h2>Agent debate</h2>
+          <p id="arena-status">Running solvers…</p>
+        </div>
+      </div>
+
+      <div class="solver-grid" aria-label="Solver agents">
+        <!-- Solver A -->
+        <article class="agent-card" id="card-A" data-state="waiting" aria-labelledby="card-A-title">
+          <header class="agent-card-header">
+            <span class="agent-badge">A</span>
+            <div class="agent-meta">
+              <span class="agent-name" id="card-A-title">Solver A</span>
+              <span class="agent-provider" id="card-A-provider">—</span>
+            </div>
+            <span class="agent-status-pill" id="card-A-status">Waiting</span>
+          </header>
+          <div class="agent-style" id="card-A-style"></div>
+          <div class="agent-body" id="card-A-body" aria-live="polite"></div>
+        </article>
+
+        <!-- Solver B -->
+        <article class="agent-card" id="card-B" data-state="waiting" aria-labelledby="card-B-title">
+          <header class="agent-card-header">
+            <span class="agent-badge">B</span>
+            <div class="agent-meta">
+              <span class="agent-name" id="card-B-title">Solver B</span>
+              <span class="agent-provider" id="card-B-provider">—</span>
+            </div>
+            <span class="agent-status-pill" id="card-B-status">Waiting</span>
+          </header>
+          <div class="agent-style" id="card-B-style"></div>
+          <div class="agent-body" id="card-B-body" aria-live="polite"></div>
+        </article>
+
+        <!-- Solver C -->
+        <article class="agent-card" id="card-C" data-state="waiting" aria-labelledby="card-C-title">
+          <header class="agent-card-header">
+            <span class="agent-badge">C</span>
+            <div class="agent-meta">
+              <span class="agent-name" id="card-C-title">Solver C</span>
+              <span class="agent-provider" id="card-C-provider">—</span>
+            </div>
+            <span class="agent-status-pill" id="card-C-status">Waiting</span>
+          </header>
+          <div class="agent-style" id="card-C-style"></div>
+          <div class="agent-body" id="card-C-body" aria-live="polite"></div>
+        </article>
+      </div>
+
+      <!-- Critic + Judge appear after solvers settle -->
+      <div id="review-row" class="review-row" hidden>
+        <!-- Critic -->
+        <article class="agent-card review-card" id="card-critic" data-state="waiting" aria-labelledby="card-critic-title">
+          <header class="agent-card-header">
+            <span class="agent-badge critic-badge">✓</span>
+            <div class="agent-meta">
+              <span class="agent-name" id="card-critic-title">Critic</span>
+              <span class="agent-provider" id="card-critic-provider">—</span>
+            </div>
+            <span class="agent-status-pill" id="card-critic-status">Waiting</span>
+          </header>
+          <div class="agent-body" id="card-critic-body" aria-live="polite"></div>
+        </article>
+
+        <!-- Judge -->
+        <article class="agent-card review-card" id="card-judge" data-state="waiting" aria-labelledby="card-judge-title">
+          <header class="agent-card-header">
+            <span class="agent-badge judge-badge">★</span>
+            <div class="agent-meta">
+              <span class="agent-name" id="card-judge-title">Judge</span>
+              <span class="agent-provider" id="card-judge-provider">—</span>
+            </div>
+            <span class="agent-status-pill" id="card-judge-status">Waiting</span>
+          </header>
+          <div class="agent-body" id="card-judge-body" aria-live="polite">
+            <div id="score-grid" class="score-grid" hidden></div>
+            <div id="winner-box" class="winner-box" hidden></div>
+          </div>
+          <div class="judge-actions" id="judge-actions" hidden>
+            <button id="retry-judge-btn" class="button button-quiet button-sm" type="button">Retry judge</button>
+            <span id="judge-retry-note" class="retry-note"></span>
+          </div>
+        </article>
+      </div>
+
+      <!-- All-solvers-failed banner -->
+      <div id="all-failed-banner" class="error-banner" role="alert" hidden>
+        <strong>All solvers failed.</strong>
+        <span id="all-failed-msg"></span>
+        <button id="retry-all-btn" class="button button-quiet button-sm" type="button">Retry</button>
+      </div>
+
+      <!-- Tutor teaser (Phase 4 placeholder) -->
+      <div id="tutor-teaser" class="tutor-teaser" hidden>
+        <div class="step-mark" aria-hidden="true">04</div>
+        <div>
+          <h2>Tutor</h2>
+          <p>Step-by-step teaching with comprehension checks will be wired in Phase 4.</p>
+        </div>
+        <span class="coming-soon">Coming in Phase 4</span>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <span>TutorArena · AI for Learning &amp; Developer Productivity</span>
+      <span>Keys clear on refresh · Phase 3</span>
+    </footer>
+  </main>
+</body>
+</html>
