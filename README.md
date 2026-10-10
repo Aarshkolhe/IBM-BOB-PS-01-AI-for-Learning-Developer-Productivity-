@@ -1,12 +1,12 @@
 # TutorArena
 
-**Author:** Aarsh Kolhe  
-**Problem Statement:** PS 01 — AI for Learning & Developer Productivity  
-**Current phase:** Phase 3 complete — Debate panel (solvers, critic, judge)
+**Author:** Aarsh Kolhe
+**Problem Statement:** PS 01 — AI for Learning & Developer Productivity
+**Current phase:** Phase 4 complete — Full pipeline with step-by-step tutor
 
 TutorArena is a learning web app where multiple AI agents independently answer a question, a critic reviews the drafts, a judge selects the best answer and improves it, and a tutor teaches the final answer in small steps. Designed for students learning programming and computer science, and junior developers debugging code.
 
-## What works now (Phase 3)
+## What works now (Phase 4)
 
 | Feature | Status |
 |---|---|
@@ -15,8 +15,8 @@ TutorArena is a learning web app where multiple AI agents independently answer a
 | Keys held in browser memory only | ✅ |
 | Three parallel solver calls | ✅ |
 | Solver cards update independently | ✅ |
-| Critic reviews all drafts | ✅ |
-| Judge scores and selects best answer | ✅ |
+| Critic reviews all drafts (fast model) | ✅ |
+| Judge scores and selects best answer (strong model) | ✅ |
 | Degraded mode when critic fails | ✅ |
 | Judge retry without re-running solvers | ✅ |
 | All-solvers-failed detection and retry | ✅ |
@@ -26,21 +26,34 @@ TutorArena is a learning web app where multiple AI agents independently answer a
 | No `innerHTML` for model output | ✅ |
 | Keys never stored in Web Storage | ✅ |
 | Keys never logged or echoed in responses | ✅ |
-
-**Not yet implemented (Phase 4):**
-- Tutor step-by-step flow
-- Got it / Not clear controls
-- Re-explanation calls
-- Recap and copy button
+| Tutor: step-by-step teaching (4–6 steps) | ✅ |
+| Tutor: progress bar (Step X of N) | ✅ |
+| Tutor: Got it / Not clear buttons | ✅ |
+| Tutor: re-explanation on Not clear (max 2×/step) | ✅ |
+| Tutor: third Not clear shows pre-generated worked example | ✅ |
+| Tutor: retry on JSON parse/schema failure | ✅ |
+| Tutor: Retry tutor button on hard failure | ✅ |
+| Recap + final check question | ✅ |
+| Copy button (recap only) | ✅ |
 
 ## How it works
 
 1. **Three solvers run in parallel.** Solver A is concise (Claude), Solver B explains from first principles (OpenAI), Solver C leads with an example (Gemini). With fewer keys, providers rotate across solvers using different prompts.
-2. **The critic reviews all successful drafts.** It finds mistakes, gaps, and differences between them without selecting a winner.
+2. **The critic reviews all successful drafts.** It finds mistakes, gaps, and differences without selecting a winner.
 3. **The judge selects and improves an answer.** It scores each draft on correctness, clarity, and completeness (1–10), then produces the final answer using the critic's findings.
-4. **Tutor (Phase 4).** Will split the answer into 4–6 teachable steps with comprehension checks.
+4. **The tutor teaches the final answer in 4–6 steps.** Each step has a title, explanation, and worked example. Got it advances; Not clear fetches a simpler explanation (up to twice per step). A third Not clear shows the pre-generated worked example — no extra API call.
+5. **Recap and copy.** After the last step a recap and final comprehension question are shown, with a copy button for the recap text.
 
-The normal pipeline uses **5 model calls per run**: 3 parallel solvers + 1 critic + 1 judge. Re-explanation calls are additional (Phase 4).
+The normal pipeline uses **6 model calls per run**: 3 parallel solvers + 1 critic + 1 judge + 1 tutor. Re-explanation calls are additional (max 2 per step).
+
+## How IBM Bob / AI Was Used
+
+1. **Solution Architecture & Multi-Agent Deliberation:** AI models are at the core of the product. TutorArena coordinates five discrete agent roles (3 Solvers, 1 Critic, 1 Judge) using prompt engineering tuned for adversarial code review, rubric scoring, and multi-perspective teaching.
+2. **Accelerated Development with IBM Bob:** IBM Bob served as an intelligent developer productivity partner throughout the hackathon:
+   - **Architectural Scaffolding:** Designed the zero-trust BYOK memory-only key lifecycle, preventing sensitive API tokens from leaking into Web Storage, server logs, or error payloads.
+   - **Backend Implementation:** Assisted in implementing the Express 5 proxy routes, request validators, SSRF prevention allowlists, and graceful degradation handlers for API failures.
+   - **Automated Test Suite:** Generated and verified 23 automated unit and integration tests using native `node:test` with 100% mocked network calls.
+   - **Defensive UI/UX:** Guided the frontend implementation to ensure zero `innerHTML` rendering (pure `textContent`), live parallel state management, and instant abort handling (`sessionId`).
 
 ## BYOK: Bring Your Own API Key
 
@@ -109,7 +122,7 @@ cd backend
 npm test
 ```
 
-All 36 tests pass. No real API keys are required — provider HTTP calls are mocked in tests.
+All 56 tests pass. No real API keys are required — provider HTTP calls are mocked in tests.
 
 ## API routes
 
@@ -117,10 +130,12 @@ All routes are served from the same origin as the frontend.
 
 | Route | Purpose |
 |---|---|
-| `GET /api/health` | Health check. Returns `{ ok: true, phase: 3 }` |
+| `GET /api/health` | Health check. Returns `{ ok: true, phase: 4 }` |
 | `POST /api/keys/test` | Test a provider key with a minimal request. Returns success/failure. |
 | `POST /api/solver` | Run one solver with a specific style. |
 | `POST /api/review` | Run critic or judge (controlled by `stage` field). |
+| `POST /api/tutor` | Generate structured teaching steps from the judge's final answer. |
+| `POST /api/reexplain` | Re-explain a specific step (simpler for count 1, worked example style for count 2). |
 
 ### POST /api/solver
 

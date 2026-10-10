@@ -8,6 +8,7 @@ const rateLimit = require('express-rate-limit');
 const keysRouter = require('./routes/keys');
 const { router: solverRouter } = require('./routes/solver');
 const reviewRouter = require('./routes/review');
+const tutorRouter = require('./routes/tutor');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -51,11 +52,12 @@ app.use('/api', apiLimiter);
 app.use(express.json({ limit: '100kb', strict: true }));
 
 app.get('/api/health', (_req, res) => {
-  res.status(200).json({ ok: true, phase: 3 });
+  res.status(200).json({ ok: true, phase: 4 });
 });
 app.use('/api/keys', keysRouter);
 app.use('/api/solver', solverRouter);
 app.use('/api/review', reviewRouter);
+app.use('/api', tutorRouter);
 
 app.use(express.static(frontendDir, {
   index: 'index.html',

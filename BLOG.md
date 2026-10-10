@@ -1,8 +1,9 @@
 # Beyond the Monologue: Why We Built TutorArena for Multi-Agent AI Learning
 
 **Author:** Aarsh Kolhe  
+**GitHub Repository:** [https://github.com/Aarshkolhe/IBM-BOB-PS-01-AI-for-Learning-Developer-Productivity-](https://github.com/Aarshkolhe/IBM-BOB-PS-01-AI-for-Learning-Developer-Productivity-)  
 **Hackathon:** IBM & Bank of Baroda Hackathon — Problem Statement 01: *AI for Learning & Developer Productivity*  
-**Tech Stack:** Node.js, Express, Vanilla JS, Claude (Anthropic), GPT-4o (OpenAI), Gemini (Google)  
+**Tech Stack:** Node.js, Express, Vanilla JS, Anthropic Claude, OpenAI GPT-4o, Google Gemini  
 
 ---
 
@@ -12,11 +13,11 @@ If you are a student learning computer science or a junior developer debugging p
 
 You paste a baffling bug into ChatGPT or Claude. The AI spits out an articulate, 400-word explanation with code blocks. It looks authoritative. It compiles... mostly. But twenty minutes later, you realize it hallucinated an edge case, made an unchecked assumption about variable mutability, or gave you an answer that works for the happy path while ignoring real-world implications.
 
-Worse, single-model explanations suffer from **confirmation bias**. If an LLM starts generating tokens based on a flawed premise in line two, its subsequent reasoning will actively defend that premise. A single model cannot easily catch its own blind spots in the same pass.
+Worse, single-model explanations suffer from **confirmation bias**. When a single LLM starts generating tokens based on a flawed premise in line two, its subsequent reasoning will actively defend that premise. A single model cannot easily catch its own blind spots in the same pass.
 
 Furthermore, every learner processes technical concepts differently:
 * Some need a **concise, direct answer** (the *"tell me the bug so I can unblock my CI"* persona).
-* Some need **first-principles theory** (the *"why does Python memory management allow this?"* persona).
+* Some need **first-principles theory** (the *"why does memory management allow this?"* persona).
 * Some need a **concrete, worked example** (the *"show me before-and-after code"* persona).
 
 We asked ourselves: **What if, instead of asking a single AI for an answer, you could convene a panel of independent AI experts who debate, critique, and peer-review each other's work before teaching you?**
@@ -27,7 +28,7 @@ That is why we built **TutorArena**.
 
 ## 2. Introducing TutorArena: Adversarial Peer Review for Code Learning
 
-**TutorArena** is a multi-agent learning platform designed for programming and computer science education. Instead of relying on a single prompt, TutorArena orchestrates a 5-step deliberation pipeline across multiple frontier AI model families (Anthropic Claude, OpenAI GPT-4o, and Google Gemini).
+**TutorArena** is a multi-agent learning platform designed for programming and computer science education. Instead of relying on a single prompt, TutorArena orchestrates a 5-step deliberation pipeline across multiple frontier AI model families: Anthropic Claude, OpenAI GPT-4o, and Google Gemini.
 
 ```
 Learner Question / Buggy Code
@@ -110,7 +111,7 @@ In educational and developer tooling, privacy and API cost transparency are para
 TutorArena solves this through an unapologetic **Bring Your Own Key (BYOK)** architecture:
 
 ### 1. Browser-Memory-Only Keys
-Keys live exclusively inside a JavaScript closure `let sessionKeys = {...}` in browser RAM.
+Keys live exclusively inside a JavaScript closure `let sessionKeys = {...}` in browser RAM:
 - **Zero Web Storage:** Never written to `localStorage`, `sessionStorage`, cookies, IndexedDB, or URL queries.
 - **Instant Eviction:** Refreshing the tab or navigating away wipes all keys immediately.
 
@@ -147,7 +148,7 @@ TutorArena is engineered with fault tolerance at every tier:
 
 ## 6. Testing & Maintainability
 
-We built TutorArena using Node.js's native test runner (`node:test`) and strict assertion library (`node:assert/strict`), avoiding heavy test frameworks.
+We built TutorArena using Node.js's native test runner (`node:test`) and strict assertion library (`node:assert/strict`), avoiding heavy test frameworks:
 
 * **23 Automated Tests Passing:** Covering provider allowlists, key safety, mock responses, schema validation, rate-limiting, and error-sanitization.
 * **100% Mocked Provider Calls:** The test suite runs in under 500 milliseconds without requiring real API keys or internet access.
@@ -166,12 +167,11 @@ Phase 3 (the complete multi-agent debate panel) is fully built and tested. The n
 
 ---
 
-## Conclusion
+## Conclusion & Code
 
 The future of AI-driven developer productivity isn't about getting faster answers from a single chatbot; it's about **trust, pedagogical depth, and architectural transparency**.
 
 By pitting diverse AI models against one another in an adversarial arena, TutorArena turns AI hallucinations from a fatal flaw into an opportunity for critical review — helping students and developers build deeper mental models of their code.
 
----
-
-*Explore the codebase, run the tests locally, or connect your keys at [GitHub: TutorArena](https://github.com/Aarshkolhe/IBM-BOB-PS-01-AI-for-Learning-Developer-Productivity-).*
+🔗 **Explore the full codebase, run the tests locally, or try it with your own keys:**  
+👉 [https://github.com/Aarshkolhe/IBM-BOB-PS-01-AI-for-Learning-Developer-Productivity-](https://github.com/Aarshkolhe/IBM-BOB-PS-01-AI-for-Learning-Developer-Productivity-)

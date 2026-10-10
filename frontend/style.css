@@ -426,28 +426,133 @@ h1 { margin: 0; letter-spacing: -.055em; font-size: clamp(32px, 4vw, 46px); line
 }
 .error-banner strong { color: var(--red); }
 
-/* ─── Tutor teaser ───────────────────────────────────────────────────────────── */
-.tutor-teaser {
+/* ─── Tutor section ──────────────────────────────────────────────────────────── */
+#tutor-section { margin-top: 28px; border-top: 1px solid var(--line); padding-top: 28px; }
+.tutor-header { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+.tutor-header h2 { margin: 0; font-size: 18px; letter-spacing: -.03em; }
+.tutor-header p  { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+
+/* ─── Spinner (shared by tutor loading and reexplain loading) ────────────────── */
+.tutor-loading, .reexplain-loading {
   display: flex;
   align-items: center;
-  gap: 14px;
-  margin-top: 24px;
-  padding: 20px;
-  border: 1px dashed var(--line);
-  border-radius: 14px;
-  background: #fafbfb;
+  gap: 10px;
+  padding: 14px 0;
+  font-size: 13px;
+  color: var(--muted);
 }
-.tutor-teaser h2 { margin: 0; font-size: 15px; }
-.tutor-teaser p  { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
-.coming-soon {
-  margin-left: auto;
-  flex: 0 0 auto;
-  border-radius: 99px;
-  padding: 6px 9px;
-  color: #6e777d;
-  background: #e9edef;
-  font-size: 10px;
-  font-weight: 800;
+@keyframes spin { to { transform: rotate(360deg); } }
+.tutor-spinner {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2px solid var(--line);
+  border-top-color: var(--teal);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  flex-shrink: 0;
+}
+
+/* ─── Step card ──────────────────────────────────────────────────────────────── */
+.step-card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.step-progress {
+  padding: 10px 18px;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+  font-size: 11px;
+  font-weight: 750;
+  color: var(--muted);
+}
+.step-card-inner { padding: 20px 22px 22px; }
+.step-title {
+  margin: 0 0 12px;
+  font-size: 17px;
+  font-weight: 750;
+  letter-spacing: -.025em;
+  color: var(--ink);
+}
+.step-explanation {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--ink);
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-bottom: 18px;
+}
+.step-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+.reexplain-error {
+  margin: 0 0 12px;
+  color: var(--red);
+  font-size: 12px;
+}
+
+/* ─── Worked example ─────────────────────────────────────────────────────────── */
+.worked-example-box {
+  margin-top: 18px;
+  background: var(--amber-pale);
+  border: 1px solid #e0cc88;
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+.worked-example-label {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 750;
+  color: var(--amber);
+}
+.worked-example-text {
+  font-size: 13px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--ink);
+  margin-bottom: 12px;
+}
+
+/* ─── Recap section ──────────────────────────────────────────────────────────── */
+.recap-section {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  margin-top: 20px;
+}
+.recap-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.recap-header h3 { margin: 0; font-size: 16px; letter-spacing: -.025em; }
+.recap-body { padding: 18px 22px; border-bottom: 1px solid var(--line); }
+.recap-label { margin: 0 0 8px; font-size: 11px; font-weight: 750; color: var(--muted); }
+.recap-text {
+  font-size: 14px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--ink);
+  margin-bottom: 12px;
+}
+.copy-confirm {
+  margin-left: 8px;
+  font-size: 11px;
+  color: var(--green);
+  font-weight: 750;
+}
+.final-check { padding: 18px 22px; }
+.final-check-text {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--ink);
+  font-style: italic;
 }
 
 /* ─── Footer ─────────────────────────────────────────────────────────────────── */

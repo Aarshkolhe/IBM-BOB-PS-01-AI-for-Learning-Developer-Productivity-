@@ -17,7 +17,7 @@
         <span>TutorArena</span>
       </a>
       <div class="topbar-right">
-        <span class="phase-label" id="phase-label">Phase 3 · Debate panel</span>
+        <span class="phase-label" id="phase-label">Phase 4 · Tutor</span>
         <button id="reset-btn" class="button button-quiet button-sm" type="button" hidden>New question</button>
       </div>
     </header>
@@ -236,20 +236,85 @@
         <button id="retry-all-btn" class="button button-quiet button-sm" type="button">Retry</button>
       </div>
 
-      <!-- Tutor teaser (Phase 4 placeholder) -->
-      <div id="tutor-teaser" class="tutor-teaser" hidden>
+    </section>
+
+    <!-- ═══ STEP 4: Tutor ════════════════════════════════════════════════════ -->
+    <section id="tutor-section" aria-label="Step-by-step tutor" hidden>
+      <div class="tutor-header">
         <div class="step-mark" aria-hidden="true">04</div>
         <div>
           <h2>Tutor</h2>
-          <p>Step-by-step teaching with comprehension checks will be wired in Phase 4.</p>
+          <p id="tutor-status">Preparing your lesson…</p>
         </div>
-        <span class="coming-soon">Coming in Phase 4</span>
+      </div>
+
+      <!-- Loading state while tutor JSON is being fetched -->
+      <div id="tutor-loading" class="tutor-loading" hidden>
+        <span class="tutor-spinner" aria-hidden="true"></span>
+        <span>Preparing your lesson…</span>
+      </div>
+
+      <!-- Tutor error / retry -->
+      <div id="tutor-error-banner" class="error-banner" role="alert" hidden>
+        <strong>Tutor failed.</strong>
+        <span id="tutor-error-msg"></span>
+        <button id="retry-tutor-btn" class="button button-quiet button-sm" type="button">Retry tutor</button>
+      </div>
+
+      <!-- Step card (one at a time) -->
+      <div id="step-card" class="step-card" hidden>
+        <!-- Progress bar -->
+        <div class="step-progress" id="step-progress" aria-live="polite"></div>
+
+        <div class="step-card-inner">
+          <h3 class="step-title" id="step-title"></h3>
+          <div class="step-explanation" id="step-explanation" aria-live="polite"></div>
+
+          <!-- Re-explanation loading -->
+          <div id="reexplain-loading" class="reexplain-loading" hidden>
+            <span class="tutor-spinner" aria-hidden="true"></span>
+            <span>Getting a simpler explanation…</span>
+          </div>
+
+          <!-- Re-explanation error (inline, non-blocking) -->
+          <p id="reexplain-error" class="reexplain-error" role="alert" hidden></p>
+
+          <div class="step-actions" id="step-actions">
+            <button id="got-it-btn" class="button button-primary" type="button">Got it</button>
+            <button id="not-clear-btn" class="button button-quiet" type="button">Not clear</button>
+          </div>
+
+          <!-- Worked example (shown on 3rd Not clear) -->
+          <div id="worked-example-box" class="worked-example-box" hidden>
+            <p class="worked-example-label">Worked example</p>
+            <div id="worked-example-text" class="worked-example-text"></div>
+            <button id="continue-btn" class="button button-quiet button-sm" type="button">Continue →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recap section (shown after last step) -->
+      <div id="recap-section" class="recap-section" hidden>
+        <div class="recap-header">
+          <span class="agent-badge judge-badge" aria-hidden="true">★</span>
+          <h3>Lesson complete</h3>
+        </div>
+        <div class="recap-body">
+          <p class="recap-label">Recap</p>
+          <div id="recap-text" class="recap-text"></div>
+          <button id="copy-recap-btn" class="button button-quiet button-sm" type="button">Copy recap</button>
+          <span id="copy-confirm" class="copy-confirm" hidden>Copied!</span>
+        </div>
+        <div class="final-check">
+          <p class="recap-label">Check your understanding</p>
+          <div id="final-check-text" class="final-check-text"></div>
+        </div>
       </div>
     </section>
 
     <footer class="footer">
       <span>TutorArena · AI for Learning &amp; Developer Productivity</span>
-      <span>Keys clear on refresh · Phase 3</span>
+      <span>Keys clear on refresh · Phase 4</span>
     </footer>
   </main>
 </body>

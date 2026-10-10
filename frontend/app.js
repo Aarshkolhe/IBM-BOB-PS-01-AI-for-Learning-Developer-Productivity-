@@ -22,7 +22,7 @@
   const JUDGE_PREFERENCE  = ['anthropic', 'openai', 'gemini'];
 
   // ═══ Application state ════════════════════════════════════════════════════════
-  // States: idle | solving | reviewing | done
+  // States: idle | solving | reviewing | tutoring | done
   let appState = 'idle';
   let sessionId = 0;        // increments on each new run; stale responses check this
   let activeAbortControllers = [];
@@ -46,9 +46,33 @@
   const retryJudgeBtn   = document.getElementById('retry-judge-btn');
   const judgeActions    = document.getElementById('judge-actions');
   const judgeRetryNote  = document.getElementById('judge-retry-note');
-  const tutorTeaser     = document.getElementById('tutor-teaser');
   const scoreGrid       = document.getElementById('score-grid');
   const winnerBox       = document.getElementById('winner-box');
+
+  // ── Tutor DOM refs ──
+  const tutorSection      = document.getElementById('tutor-section');
+  const tutorStatus       = document.getElementById('tutor-status');
+  const tutorLoading      = document.getElementById('tutor-loading');
+  const tutorErrorBanner  = document.getElementById('tutor-error-banner');
+  const tutorErrorMsg     = document.getElementById('tutor-error-msg');
+  const retryTutorBtn     = document.getElementById('retry-tutor-btn');
+  const stepCard          = document.getElementById('step-card');
+  const stepProgress      = document.getElementById('step-progress');
+  const stepTitle         = document.getElementById('step-title');
+  const stepExplanation   = document.getElementById('step-explanation');
+  const reexplainLoading  = document.getElementById('reexplain-loading');
+  const reexplainError    = document.getElementById('reexplain-error');
+  const stepActions       = document.getElementById('step-actions');
+  const gotItBtn          = document.getElementById('got-it-btn');
+  const notClearBtn       = document.getElementById('not-clear-btn');
+  const workedExampleBox  = document.getElementById('worked-example-box');
+  const workedExampleText = document.getElementById('worked-example-text');
+  const continueBtn       = document.getElementById('continue-btn');
+  const recapSection      = document.getElementById('recap-section');
+  const recapText         = document.getElementById('recap-text');
+  const copyRecapBtn      = document.getElementById('copy-recap-btn');
+  const copyConfirm       = document.getElementById('copy-confirm');
+  const finalCheckText    = document.getElementById('final-check-text');
 
   // ═══ Utilities ════════════════════════════════════════════════════════════════
 
@@ -310,12 +334,12 @@
     };
 
     // Clear old arena state
-    allFailedBanner.hidden = true;
-    judgeActions.hidden    = true;
-    reviewRow.hidden       = true;
-    tutorTeaser.hidden     = true;
-    arenaSection.hidden    = false;
-    resetBtn.hidden        = false;
+    allFailedBanner.hidden  = true;
+    judgeActions.hidden     = true;
+    reviewRow.hidden        = true;
+    tutorSection.hidden     = true;
+    arenaSection.hidden     = false;
+    resetBtn.hidden         = false;
 
     const assignments = assignSolverProviders();
     if (!assignments) {
@@ -467,10 +491,9 @@
           renderWinnerBox(data.winner, data.winnerText, criticDegraded || data.degraded);
           setCardState('judge', 'done', 'Completed');
           judgeActions.hidden = true;
-          arenaStatus.textContent = `Done — Solver ${data.winner} selected.`;
-          tutorTeaser.hidden = false;
-          appState = 'done';
-          updateStartButton();
+          arenaStatus.textContent = `Solver ${data.winner} selected. Starting tutor…`;
+          // Hand off to tutor — pass judgeProvider as tutor provider (same preference)
+          runTutor(question, data.winnerText, judgeProvider, mySessionId, ac);
         } else {
           const msg = data && data.error && data.error.message
             ? data.error.message
@@ -498,7 +521,208 @@
 
     retryJudgeBtn.onclick = () => runJudge(true);
     await runJudge(false);
-    cleanup();
+    // Note: cleanup() is called inside runTutor when it completes or fails.
+    // If judge itself fails (not tutor), we do NOT call cleanup so the abort
+    // controller stays active for the retry path.
+  }
+
+  // ═══ Tutor pipeline ════════════════════════════════════════════════════════════
+
+  async function runTutor(question, winnerText, provider, mySessionId, ac) {
+    if (mySessionId !== sessionId) { ac.abort(); return; }
+
+    appState = 'tutoring';
+    updateStartButton();
+
+    tutorSection.hidden    = false;
+    tutorLoading.hidden    = false;
+    tutorErrorBanner.hidden = true;
+    stepCard.hidden        = true;
+    recapSection.hidden    = true;
+    tutorStatus.textContent = 'Preparing your lesson…';
+
+    // Scroll to tutor section
+    tutorSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    let tutorData;
+    try {
+      const { ok, data } = await apiFetch('/api/tutor', {
+        provider,
+        apiKey: sessionKeys[provider],
+        question,
+        winnerText
+      }, ac);
+
+      if (mySessionId !== sessionId) { return; }
+
+      if (ok && data && data.ok && Array.isArray(data.steps)) {
+        tutorData = data;
+      } else {
+        const msg = data && data.error && data.error.message
+          ? data.error.message
+          : 'The tutor failed to prepare your lesson.';
+        showTutorError(msg, question, winnerText, provider, mySessionId, ac);
+        return;
+      }
+    } catch (err) {
+      if (mySessionId !== sessionId) return;
+      if (err && err.name === 'AbortError') { appState = 'idle'; updateStartButton(); return; }
+      showTutorError('Network error reaching the tutor. Check your connection.', question, winnerText, provider, mySessionId, ac);
+      return;
+    }
+
+    tutorLoading.hidden = true;
+    tutorStatus.textContent = `Lesson ready — ${tutorData.steps.length} steps.`;
+
+    // ── Step-by-step state ──
+    let currentStep   = 0;
+    let notClearCount = 0;
+
+    function renderStep(index) {
+      currentStep   = index;
+      notClearCount = 0;
+
+      const step = tutorData.steps[index];
+
+      stepProgress.textContent = `Step ${index + 1} of ${tutorData.steps.length}`;
+      stepTitle.textContent       = step.title;
+      stepExplanation.textContent = step.explanation;
+
+      // Reset auxiliary UI
+      reexplainLoading.hidden  = true;
+      reexplainError.hidden    = true;
+      reexplainError.textContent = '';
+      workedExampleBox.hidden  = true;
+      stepActions.hidden       = false;
+      gotItBtn.disabled        = false;
+      notClearBtn.disabled     = false;
+      stepCard.hidden          = false;
+    }
+
+    function advanceStep() {
+      if (currentStep + 1 < tutorData.steps.length) {
+        renderStep(currentStep + 1);
+      } else {
+        showRecap();
+      }
+    }
+
+    function showRecap() {
+      stepCard.hidden   = true;
+      recapSection.hidden = false;
+      tutorStatus.textContent = 'Lesson complete.';
+      appState = 'done';
+      updateStartButton();
+
+      recapText.textContent       = tutorData.recap;
+      finalCheckText.textContent  = tutorData.final_check_question;
+
+      copyRecapBtn.onclick = async () => {
+        try {
+          await navigator.clipboard.writeText(tutorData.recap);
+          copyConfirm.hidden = false;
+          setTimeout(() => { copyConfirm.hidden = true; }, 1500);
+        } catch {
+          copyConfirm.hidden = false;
+          copyConfirm.textContent = 'Copy failed — select and copy manually.';
+          setTimeout(() => {
+            copyConfirm.hidden = true;
+            copyConfirm.textContent = 'Copied!';
+          }, 2500);
+        }
+      };
+    }
+
+    // ── Got it ──
+    gotItBtn.onclick = () => {
+      if (appState !== 'tutoring') return;
+      advanceStep();
+    };
+
+    // ── Not clear ──
+    notClearBtn.onclick = async () => {
+      if (appState !== 'tutoring') return;
+
+      notClearCount += 1;
+
+      if (notClearCount >= 3) {
+        // Third click: show pre-generated worked example, no API call
+        const step = tutorData.steps[currentStep];
+        workedExampleText.textContent = step.worked_example;
+        workedExampleBox.hidden       = false;
+        stepActions.hidden            = true;
+        return;
+      }
+
+      // First or second click: fetch re-explanation
+      gotItBtn.disabled    = true;
+      notClearBtn.disabled = true;
+      reexplainLoading.hidden = false;
+      reexplainError.hidden   = true;
+      reexplainError.textContent = '';
+
+      const step = tutorData.steps[currentStep];
+      try {
+        const { ok, data } = await apiFetch('/api/reexplain', {
+          provider,
+          apiKey: sessionKeys[provider],
+          stepTitle:       step.title,
+          stepExplanation: step.explanation,
+          notClearCount
+        }, ac);
+
+        if (mySessionId !== sessionId) return;
+
+        reexplainLoading.hidden = true;
+
+        if (ok && data && data.ok && typeof data.explanation === 'string') {
+          stepExplanation.textContent = data.explanation;
+        } else {
+          // Re-explanation failed — do NOT consume the notClearCount
+          notClearCount -= 1;
+          const msg = data && data.error && data.error.message
+            ? data.error.message
+            : 'Re-explanation failed. Try again.';
+          reexplainError.textContent = msg;
+          reexplainError.hidden = false;
+        }
+      } catch (err) {
+        if (mySessionId !== sessionId) return;
+        reexplainLoading.hidden = true;
+        if (err && err.name === 'AbortError') return;
+        // Network error — do NOT consume the notClearCount
+        notClearCount -= 1;
+        reexplainError.textContent = 'Network error. Try again.';
+        reexplainError.hidden = false;
+      } finally {
+        gotItBtn.disabled    = false;
+        notClearBtn.disabled = false;
+      }
+    };
+
+    // ── Continue button (after worked example) ──
+    continueBtn.onclick = () => {
+      workedExampleBox.hidden = true;
+      stepActions.hidden      = false;
+      advanceStep();
+    };
+
+    // Kick off the first step
+    renderStep(0);
+  }
+
+  function showTutorError(message, question, winnerText, provider, mySessionId, ac) {
+    tutorLoading.hidden      = true;
+    tutorErrorBanner.hidden  = false;
+    tutorErrorMsg.textContent = message;
+    tutorStatus.textContent  = 'Tutor failed.';
+    appState = 'reviewing';  // allow re-running tutor without full pipeline reset
+    updateStartButton();
+
+    retryTutorBtn.onclick = () => {
+      tutorErrorBanner.hidden = true;
+      runTutor(question, winnerText, provider, mySessionId, ac);
+    };
   }
 
   // ═══ Question form ═════════════════════════════════════════════════════════════
@@ -544,15 +768,28 @@
     sessionId++; // invalidate any in-flight callbacks
 
     appState = 'idle';
-    arenaSection.hidden    = true;
-    reviewRow.hidden       = true;
-    allFailedBanner.hidden = true;
-    tutorTeaser.hidden     = true;
-    resetBtn.hidden        = true;
-    judgeActions.hidden    = true;
-    scoreGrid.hidden       = true;
-    winnerBox.hidden       = true;
+    arenaSection.hidden      = true;
+    reviewRow.hidden         = true;
+    allFailedBanner.hidden   = true;
+    resetBtn.hidden          = true;
+    judgeActions.hidden      = true;
+    scoreGrid.hidden         = true;
+    winnerBox.hidden         = true;
     questionError.textContent = '';
+
+    // Reset tutor section
+    tutorSection.hidden       = true;
+    tutorLoading.hidden       = true;
+    tutorErrorBanner.hidden   = true;
+    stepCard.hidden           = true;
+    recapSection.hidden       = true;
+    workedExampleBox.hidden   = true;
+    reexplainLoading.hidden   = true;
+    reexplainError.hidden     = true;
+    reexplainError.textContent = '';
+    copyConfirm.hidden        = true;
+    copyConfirm.textContent   = 'Copied!';
+    tutorStatus.textContent   = 'Preparing your lesson…';
 
     // Reset all solver cards
     for (const cfg of SOLVER_CONFIGS) {
