@@ -16,6 +16,7 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 const frontendDir = path.join(__dirname, '..', 'frontend');
 
 app.disable('x-powered-by');
+app.set('trust proxy', 1);
 
 const cspDirectives = {
   defaultSrc: ["'self'"],

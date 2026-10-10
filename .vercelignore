@@ -1,0 +1,11 @@
+backend/test/**
+*.log
+.git
+BLOG.md
+tutorarena-plan.md
+backend/all_models_ids.txt
+backend/anthropic_*.txt
+backend/gemini_*.txt
+backend/openai_*.txt
+backend/model_verification.txt
+backend/check_*.mjs

@@ -312,3 +312,28 @@ Common codes: `INVALID_REQUEST`, `PROVIDER_AUTH_FAILED`, `PROVIDER_LIMIT_REACHED
 - [ ] Rate limits, timeouts, and concurrency caps active.
 - [ ] Keys and request bodies are not captured in platform logs.
 - [ ] Invalid-key, quota, all-solver-failure, critic-failure, judge-failure, and bad-JSON states tested.
+
+## Vercel deployment
+
+TutorArena is fully configured for deployment on Vercel as a hybrid application:
+- **Frontend**: Static files in `/frontend` are served directly by Vercel's global CDN.
+- **Backend API**: The Express app in `/backend` runs as a Vercel Serverless Function via `/api/index.js` (with `maxDuration: 60s` for LLM multi-agent pipelines).
+
+### Option 1 — Git Integration (Recommended)
+1. Push this repository to GitHub:
+   ```bash
+   git add .
+   git commit -m "Configure Vercel deployment"
+   git push origin main
+   ```
+2. Open [Vercel Dashboard](https://vercel.com/new) and click **Import Project**.
+3. Select your GitHub repository (`IBM-BOB-PS-01-AI-for-Learning-Developer-Productivity-`).
+4. Keep the root directory as `./` (default) and framework as **Other**.
+5. Click **Deploy**. Vercel will automatically read `vercel.json` and deploy both the frontend and API.
+
+### Option 2 — Vercel CLI
+```bash
+npx vercel
+```
+Follow the interactive prompts to link and deploy the project.
+

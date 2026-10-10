@@ -1,0 +1,21 @@
+{
+  "name": "tutorarena",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TutorArena — Multi-agent LLM debate arena and Socratic tutor",
+  "main": "api/index.js",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "start": "node backend/server.js",
+    "test": "node --test backend/test/*.test.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.6.1",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.1.0",
+    "express-validator": "^7.2.1",
+    "helmet": "^8.1.0"
+  }
+}
